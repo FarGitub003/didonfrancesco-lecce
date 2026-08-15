@@ -9,13 +9,30 @@ FM.scenica('timbro', function (el, o) {
   if (o.giro) el.style.setProperty('--fmx-giro', n(o.giro, -8) + 'deg');
   if (FM.ridotto()) return { ferma: pulisci };
 
-  var alone = null;
+  var alone = null, t1 = 0, t2 = 0, tagliato = null;
+  /* Toglie di mezzo quello che il battito precedente ha lasciato: senza questo,
+     due battiti ravvicinati lasciano due aloni sovrapposti e due timer vivi. */
+  function sparecchia() {
+    clearTimeout(t1); clearTimeout(t2);
+    if (alone && alone.parentNode) alone.parentNode.removeChild(alone);
+    alone = null;
+    if (tagliato) { tagliato.classList.remove('fmx-timbro-taglia'); tagliato = null; }
+  }
   function batti() {
     var scala = 2.4;
+    sparecchia();
     el.classList.remove('fmx-batti'); void el.offsetWidth; el.classList.add('fmx-batti');
     var padre = el.offsetParent || el.parentNode;
     if (padre && padre.appendChild) {
       if (getComputedStyle(padre).position === 'static') padre.classList.add('fm-palco');
+      /* Il fotogramma 0% del battito ingrandisce il marchio 3,2 volte: su uno
+         schermo stretto questo ALLARGA LA PAGINA (barra orizzontale) pur essendo
+         invisibile, perche' li' l'opacita' e' 0. Si taglia di lato — solo su
+         questo genitore e solo per la durata del battito — invece di rimpicciolire
+         l'ingresso: cosi' l'effetto resta quello di sempre e al sito non resta
+         addosso niente. `clip` e non `hidden`: non crea un contenitore di
+         scorrimento e non tocca `window.scrollY`. */
+      tagliato = padre; padre.classList.add('fmx-timbro-taglia');
       alone = document.createElement('div');
       alone.className = 'fmx-timbro-alone'; alone.setAttribute('aria-hidden', 'true');
       var w = el.offsetWidth, h = el.offsetHeight, d = Math.max(w, h);
@@ -35,7 +52,7 @@ FM.scenica('timbro', function (el, o) {
       alone.style.cssText = 'left:' + (el.offsetLeft + w / 2 - d / 2) + 'px;top:' +
         (el.offsetTop + h / 2 - d / 2) + 'px;width:' + d + 'px;height:' + d + 'px';
       padre.appendChild(alone);
-      setTimeout(function () {
+      t1 = setTimeout(function () {
         /* Lo stato di PARTENZA si fissa prima di accendere la transizione: se si
            scrive .5 e subito dopo 0, il browser vede solo il valore finale e la
            transizione si accorcia a niente — l'alone non si vedeva mai. E niente
@@ -45,7 +62,7 @@ FM.scenica('timbro', function (el, o) {
         alone.style.transition = 'transform .7s cubic-bezier(.22,1,.36,1), opacity .7s linear';
         alone.style.transform = 'scale(' + scala.toFixed(2) + ')';
         alone.style.opacity = '0';
-        setTimeout(function () { if (alone && alone.parentNode) alone.parentNode.removeChild(alone); }, 800);
+        t2 = setTimeout(sparecchia, 800);   /* toglie l'alone e il taglio di lato */
       }, durata * .5);
     }
   }
@@ -54,7 +71,7 @@ FM.scenica('timbro', function (el, o) {
   function pulisci() {
     if (io) io.disconnect();
     el.classList.remove('fmx-timbro', 'fmx-batti');
-    if (alone && alone.parentNode) alone.parentNode.removeChild(alone);
+    sparecchia();                     /* anche i due timer: se restano vivi, agiscono su roba smontata */
   }
   return { ferma: pulisci, batti: batti };
 });
