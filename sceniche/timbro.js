@@ -11,6 +11,7 @@ FM.scenica('timbro', function (el, o) {
 
   var alone = null;
   function batti() {
+    var scala = 2.4;
     el.classList.remove('fmx-batti'); void el.offsetWidth; el.classList.add('fmx-batti');
     var padre = el.offsetParent || el.parentNode;
     if (padre && padre.appendChild) {
@@ -18,6 +19,19 @@ FM.scenica('timbro', function (el, o) {
       alone = document.createElement('div');
       alone.className = 'fmx-timbro-alone'; alone.setAttribute('aria-hidden', 'true');
       var w = el.offsetWidth, h = el.offsetHeight, d = Math.max(w, h);
+      /* Quanto si allarga l'alone. Su uno schermo stretto un marchio largo lo
+         farebbe sfondare di lato: misurato su un occhiello di 272px a 390px di
+         schermo, alone 653px e pagina larga 516. Non si vedeva solo perche' QUEL
+         sito ha un `overflow-x:hidden` suo, che il kit non garantisce. Si limita
+         la CRESCITA, non la partenza: l'anello deve nascere addosso al marchio. */
+      var vw = window.innerWidth || 0;
+      if (vw && d * scala > vw * .9) {
+        scala = vw * .9 / d;
+        /* Se il marchio e' gia' largo quanto lo schermo non basta stringere la
+           crescita (l'anello resterebbe fermo): si stringe anche l'anello, cosi'
+           un po' di corsa si vede sempre e la pagina non si allarga mai. */
+        if (scala < 1.25) { scala = 1.25; d = vw * .9 / scala; }
+      }
       alone.style.cssText = 'left:' + (el.offsetLeft + w / 2 - d / 2) + 'px;top:' +
         (el.offsetTop + h / 2 - d / 2) + 'px;width:' + d + 'px;height:' + d + 'px';
       padre.appendChild(alone);
@@ -29,7 +43,7 @@ FM.scenica('timbro', function (el, o) {
         alone.style.opacity = '.5';
         void alone.offsetWidth;
         alone.style.transition = 'transform .7s cubic-bezier(.22,1,.36,1), opacity .7s linear';
-        alone.style.transform = 'scale(2.4)';
+        alone.style.transform = 'scale(' + scala.toFixed(2) + ')';
         alone.style.opacity = '0';
         setTimeout(function () { if (alone && alone.parentNode) alone.parentNode.removeChild(alone); }, 800);
       }, durata * .5);
