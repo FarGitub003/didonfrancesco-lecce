@@ -22,9 +22,15 @@ FM.scenica('timbro', function (el, o) {
         (el.offsetTop + h / 2 - d / 2) + 'px;width:' + d + 'px;height:' + d + 'px';
       padre.appendChild(alone);
       setTimeout(function () {
+        /* Lo stato di PARTENZA si fissa prima di accendere la transizione: se si
+           scrive .5 e subito dopo 0, il browser vede solo il valore finale e la
+           transizione si accorcia a niente — l'alone non si vedeva mai. E niente
+           requestAnimationFrame: a scheda nascosta quel frame non arriva. */
+        alone.style.opacity = '.5';
+        void alone.offsetWidth;
         alone.style.transition = 'transform .7s cubic-bezier(.22,1,.36,1), opacity .7s linear';
-        alone.style.opacity = '.5'; alone.style.transform = 'scale(2.4)';
-        requestAnimationFrame(function () { alone.style.opacity = '0'; });
+        alone.style.transform = 'scale(2.4)';
+        alone.style.opacity = '0';
         setTimeout(function () { if (alone && alone.parentNode) alone.parentNode.removeChild(alone); }, 800);
       }, durata * .5);
     }
